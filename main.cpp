@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <numbers>
 #include <string>
 #include <thread>
 #include <vector>
@@ -66,7 +67,7 @@ Image normal_estimate(Image* greyscale, int width, int height, float ratio) {
 
 	// Approximate z value using polynomial.
 	float approximation = ratio + std::pow(ratio, 3.0f) + std::pow(ratio, 5.0f) + std::pow(ratio, 7.0f);
-	float z = std::sqrt(2) * approximation; 
+	float z = std::numbers::sqrt2 * approximation; 
 	return (Image)((float)average + (z * sigma)); // CDF.
 }
 
