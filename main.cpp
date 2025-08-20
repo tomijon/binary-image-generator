@@ -162,7 +162,7 @@ Image nth_element_sort(Image* greyscale, int width, int height, float ratio) {
 
 int main(int c, char* argv[]) {
 	int width, height, channels;
-	const char* greyscale_name = "sample_image.png";
+	const char* greyscale_name = "full_black.png";
 	const char* binary_name = "sample_binary.png";
 	Image* image;
 	Image* copy;
