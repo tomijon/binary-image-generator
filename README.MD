@@ -13,7 +13,7 @@ The estimation algorithms were primarily experimental, and were created to see h
 
 ## Building
 
-The program can be built with the `build.bat`. Optionally add the `-O3` flag for optimised build.
+The program can be built with the `build.bat`.  Alternatively, `g++ main.cpp -std=c++20 -o main.exe`. Optionally add the `-O3` flag for optimised build: `g++ main.cpp -std=c++20 -O3 -o main.exe`
 
 ## Example Output*
 
