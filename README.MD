@@ -14,25 +14,30 @@ The estimation algorithms were primarily experimental, and were created to see h
 
 The program can be built with the `build.bat`. Optionally add the `-O3` flag for optimised build.
 
-## Example Output
+## Example Output*
 
 ```
 Counting Sort
-    Threshold: 80
-    Execution Time: 0.03s
+    Threshold: 88
+    Execution Time: 0.11s
 std::sort
-    Threshold: 80
-    Execution Time: 0.69s
+    Threshold: 88
+    Execution Time: 1.33s
 Nth Element
-    Threshold: 80
-    Execution Time: 0.07s
+    Threshold: 88
+    Execution Time: 0.12s
 Normal Estimate
-    Threshold: 136
-    Execution Time: 0.15s
+    Threshold: 139
+    Execution Time: 0.24s
 Weighted Estimate
-    Threshold: 66
-    Execution Time: 0.00s
+    Threshold: 73
+    Execution Time: 0.02s
+Uniform Sample
+    Threshold: 88
+    Execution Time: 0.01s
 ```
+
+*Without -O3 flag.
 
 ## Other
 
