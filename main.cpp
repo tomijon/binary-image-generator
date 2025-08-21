@@ -290,6 +290,9 @@ int main(int c, char* argv[]) {
 		} else if (image[pixel] < nth_element_sort_threshold) {
 			image[pixel] = 0;
 		}
+		else if (!(image[pixel] == 0 || image[pixel] == ((1 << BIT_DEPTH) - 1))) {
+			image[pixel] = 0;
+		}
 	}
 	stbi_write_png(binary_name, width, height, 1, image, width * sizeof(Pixel));
 	return 0;
