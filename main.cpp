@@ -21,8 +21,9 @@
 #define BIT_DEPTH 8
 
 constexpr int GreyChannel = 1;
-constexpr float Ratio = 0.6f; // % of black pixels.
+constexpr float Ratio = 0.33f; // % of black pixels.
 constexpr std::string_view Padding = "    ";
+constexpr unsigned int SampleRate = 10;
 
 using namespace std::chrono_literals;
 
@@ -166,17 +167,19 @@ Pixel nth_element_sort(Pixel* greyscale, int width, int height, float ratio) {
  * @param greyscale - the reference image.
  * @param width - the width of the image.
  * @param height - the height of the image.
+ * @param sample_rate - how often to sample the image (a value of 10 means
+ * 		every 10 pixels)
  * @param ratio - the ratio of black to white pixels.
  */
-Pixel uniform_sample(Pixel* greyscale, int width, int height, float ratio) {
+Pixel uniform_sample(Pixel* greyscale, int width, int height, unsigned int sample_rate, float ratio) {
 	std::unique_ptr<size_t[]> count = std::make_unique<size_t[]>(1 << BIT_DEPTH);
 	size_t image_size = width * height;
 
-	for (size_t pixel = 0; pixel < image_size; pixel+=10) {
+	for (size_t pixel = 0; pixel < image_size; pixel += sample_rate) {
 		count[greyscale[pixel]]++;
 	}
 
-	size_t cutoff = (image_size / 10) * ratio;
+	size_t cutoff = (image_size / sample_rate) * ratio;
 	size_t total = 0;
 	size_t index = 0;
 
@@ -230,7 +233,7 @@ int main(int c, char* argv[]) {
 			values to find the threshold value.
 
 		- Uniform Sample
-			Looks at every 10 pixels rather than every pixel. Only good for
+			Looks at every n pixels rather than every pixel. Only good for
 			larger images or images with little detail.
 	*/
 
@@ -278,16 +281,16 @@ int main(int c, char* argv[]) {
 	
 	// Uniform Sample.
 	start = std::chrono::high_resolution_clock::now();
-	Pixel uniform_sample_threshold = uniform_sample(image, width, height, Ratio);
+	Pixel uniform_sample_threshold = uniform_sample(image, width, height, SampleRate, Ratio);
 	end = std::chrono::high_resolution_clock::now();
 	duration = end - start;
 	display("Uniform Sample", uniform_sample_threshold, duration.count());
 	
 	// Export Pixel. Do not change pixels that are on the threshold if they are 0 or max BIT_DEPTH.
 	for (size_t pixel = 0; pixel < width * height; pixel++) {
-		if (image[pixel] > nth_element_sort_threshold) {
+		if (image[pixel] > uniform_sample_threshold) {
 			image[pixel] = (1 << BIT_DEPTH) - 1;
-		} else if (image[pixel] < nth_element_sort_threshold) {
+		} else if (image[pixel] < uniform_sample_threshold) {
 			image[pixel] = 0;
 		}
 		else if (!(image[pixel] == 0 || image[pixel] == ((1 << BIT_DEPTH) - 1))) {
