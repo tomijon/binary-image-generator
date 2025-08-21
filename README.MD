@@ -7,8 +7,9 @@ Explores different methods for converting a greyscale image to a binary image (b
 - std::nth_element
 - Normal Distribution (estimation)
 - Linear Interpolation (estimation)
+- Uniform Sampling
 
-The estimation algorithms were primarily experimental, and were created to see how accurate they could be in comparison to the sorting methods, while also performing faster. `std::sort` and `std::nth_element` sort in place, and so copying the image data to a pre-allocated buffer was included in the benchmark, due to the likelihood of writing the binary image upon finding the threshold value. The nth_element algorithm and the counting sort algorithm are quite close in terms of performance.
+The estimation algorithms were primarily experimental, and were created to see how accurate they could be in comparison to the sorting methods, while also performing faster. `std::sort` and `std::nth_element` sort in place, and so copying the image data to a pre-allocated buffer was included in the benchmark, due to the likelihood of writing the binary image upon finding the threshold value. The nth_element algorithm and the counting sort algorithm are quite close in terms of performance. Uniform sampling is very good, but can produce incorrect results (although the incorrect results are close to the correct values).
 
 ## Building
 
