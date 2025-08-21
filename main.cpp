@@ -283,7 +283,7 @@ int main(int c, char* argv[]) {
 	duration = end - start;
 	display("Uniform Sample", uniform_sample_threshold, duration.count());
 	
-	// Export Pixel. Do not change pixels that are on the threshold.
+	// Export Pixel. Do not change pixels that are on the threshold if they are 0 or max BIT_DEPTH.
 	for (size_t pixel = 0; pixel < width * height; pixel++) {
 		if (image[pixel] > nth_element_sort_threshold) {
 			image[pixel] = (1 << BIT_DEPTH) - 1;
