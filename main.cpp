@@ -21,15 +21,15 @@
 #define BIT_DEPTH 8
 
 constexpr int GreyChannel = 1;
-constexpr float Ratio = 0.3f; // % of black pixels.
+constexpr float Ratio = 0.6f; // % of black pixels.
 constexpr std::string_view Padding = "    ";
 
 using namespace std::chrono_literals;
 
 #if BIT_DEPTH <= 8
-typedef stbi_uc Image;
+typedef stbi_uc Pixel;
 #else
-typedef stbi_uint16 Image;
+typedef stbi_uint16 Pixel;
 #endif
 
 /**
@@ -38,7 +38,7 @@ typedef stbi_uint16 Image;
  * @param threshold - The threshold value found.
  * @param duration - The length of time the algorithm took (in seconds).
  */
-void display(const std::string& name, Image threshold, float duration) {
+void display(const std::string& name, Pixel threshold, float duration) {
 	std::cout << name << std::endl;
 	std::cout << Padding << "Threshold: " << (int)threshold << std::endl;
 	std::cout << Padding << "Execution Time: " << std::fixed << std::setprecision(2) << duration << 's' << std::endl;
@@ -52,12 +52,12 @@ void display(const std::string& name, Image threshold, float duration) {
  * @param height - the height of the image.
  * @param ratio - the ratio of black to white pixels.
  */
-Image normal_estimate(Image* greyscale, int width, int height, float ratio) {
+Pixel normal_estimate(Pixel* greyscale, int width, int height, float ratio) {
 	size_t total = 0;
 	for (int pixel = 0; pixel < width * height; pixel++) {
 		total += greyscale[pixel];
 	}
-	Image average = total / (width * height);
+	Pixel average = total / (width * height);
 
 	size_t sigma_total = 0;
 	for (int pixel = 0; pixel < width * height; pixel++) {
@@ -68,7 +68,7 @@ Image normal_estimate(Image* greyscale, int width, int height, float ratio) {
 	// Approximate z value using polynomial.
 	float approximation = ratio + std::pow(ratio, 3.0f) + std::pow(ratio, 5.0f) + std::pow(ratio, 7.0f);
 	float z = std::numbers::sqrt2 * approximation; 
-	return (Image)((float)average + (z * sigma)); // CDF.
+	return (Pixel)((float)average + (z * sigma)); // CDF.
 }
 
 
@@ -80,13 +80,14 @@ Image normal_estimate(Image* greyscale, int width, int height, float ratio) {
  * @param height - the height of the image.
  * @param ratio - the ratio of black to white pixels.
  */
-Image weighted_estimate(Image* greyscale, int width, int height, float ratio) {
+Pixel weighted_estimate(Pixel* greyscale, int width, int height, float ratio) {
 	size_t total = 0;
 	for (int pixel = 0; pixel < width * height; pixel++) {
 		total += greyscale[pixel];
 	}
-	Image average = total / (width * height);
-	Image min, max;
+	Pixel average = total / (width * height);
+
+	Pixel min, max;
 	if (ratio > 0.5) {
 		min = average;
 		max = (1 << BIT_DEPTH) - 1;
@@ -110,7 +111,7 @@ Image weighted_estimate(Image* greyscale, int width, int height, float ratio) {
  * @param height - the height of the image.
  * @param ratio - the ratio of black to white pixels.
  */
-Image std_sort(Image* greyscale, int width, int height, float ratio) {
+Pixel std_sort(Pixel* greyscale, int width, int height, float ratio) {
 	int n = (width * height) * ratio;
 	std::sort(greyscale, greyscale + (width * height));
 	return greyscale[n];
@@ -126,7 +127,7 @@ Image std_sort(Image* greyscale, int width, int height, float ratio) {
  * @param height - the height of the image.
  * @param ratio - the ratio of black to white pixels.
  */
-Image counting_sort(Image* greyscale, int width, int height, float ratio) {
+Pixel counting_sort(Pixel* greyscale, int width, int height, float ratio) {
 	std::unique_ptr<size_t[]> count = std::make_unique<size_t[]>(1 << BIT_DEPTH);
 	size_t image_size = width * height;
 
@@ -141,7 +142,7 @@ Image counting_sort(Image* greyscale, int width, int height, float ratio) {
 	while (total < cutoff && index < (1 << BIT_DEPTH)) {
 		total += count[index++];
 	}
-	return index - 1;
+	return std::max((size_t)0, index - 1);
 }
 
 
@@ -153,19 +154,45 @@ Image counting_sort(Image* greyscale, int width, int height, float ratio) {
  * @param height - the height of the image.
  * @param ratio - the ratio of black to white pixels.
  */
-Image nth_element_sort(Image* greyscale, int width, int height, float ratio) {
+Pixel nth_element_sort(Pixel* greyscale, int width, int height, float ratio) {
 	size_t n = (width * height) * ratio;
 	std::nth_element(greyscale, greyscale + n, greyscale + (width * height));
 	return greyscale[n];
 }
 
 
+/**
+ * Run a counting sort version on a uniform sample of the input image.
+ * @param greyscale - the reference image.
+ * @param width - the width of the image.
+ * @param height - the height of the image.
+ * @param ratio - the ratio of black to white pixels.
+ */
+Pixel uniform_sample(Pixel* greyscale, int width, int height, float ratio) {
+	std::unique_ptr<size_t[]> count = std::make_unique<size_t[]>(1 << BIT_DEPTH);
+	size_t image_size = width * height;
+
+	for (size_t pixel = 0; pixel < image_size; pixel+=10) {
+		count[greyscale[pixel]]++;
+	}
+
+	size_t cutoff = (image_size / 10) * ratio;
+	size_t total = 0;
+	size_t index = 0;
+
+	while (total < cutoff && index < (1 << BIT_DEPTH)) {
+		total += count[index++];
+	}
+	return std::max((size_t)0, index - 1);
+}
+
+
 int main(int c, char* argv[]) {
 	int width, height, channels;
-	const char* greyscale_name = "full_black.png";
+	const char* greyscale_name = "sample_image.png";
 	const char* binary_name = "sample_binary.png";
-	Image* image;
-	Image* copy;
+	Pixel* image;
+	Pixel* copy;
 	
 #if BIT_DEPTH <= 8
 	image = stbi_load(greyscale_name, &width, &height, &channels, GreyChannel);
@@ -173,7 +200,7 @@ int main(int c, char* argv[]) {
 	image = stbi_load_16(greyscale_name, &width, &height, &channels, GreyChannel);
 #endif
 	assert(image != nullptr && "Failed to open image.");
-	copy = (Image*)malloc(sizeof(Image) * width * height);
+	copy = (Pixel*)malloc(sizeof(Pixel) * width * height);
 	if (copy == nullptr) return 1;
 	std::memcpy(copy, image, width * height);
 
@@ -201,6 +228,10 @@ int main(int c, char* argv[]) {
 		- Weighted Estimate
 			Linearly interpolating between the average and the min / max
 			values to find the threshold value.
+
+		- Uniform Sample
+			Looks at every 10 pixels rather than every pixel. Only good for
+			larger images or images with little detail.
 	*/
 
 	// Benchmarking.
@@ -210,14 +241,14 @@ int main(int c, char* argv[]) {
 
 	// Counting Sort.
 	start = std::chrono::high_resolution_clock::now();
-	Image counting_sort_threshold = counting_sort(image, width, height, Ratio);
+	Pixel counting_sort_threshold = counting_sort(image, width, height, Ratio);
 	end = std::chrono::high_resolution_clock::now();
 	duration = end - start;
 	display("Counting Sort", counting_sort_threshold, duration.count());
 
 	// std::sort.
 	start = std::chrono::high_resolution_clock::now();
-	Image std_sort_threshold = std_sort(image, width, height, Ratio);
+	Pixel std_sort_threshold = std_sort(image, width, height, Ratio);
 	std::memcpy(image, copy, width * height);
 	end = std::chrono::high_resolution_clock::now();
 	duration = end - start;
@@ -225,7 +256,7 @@ int main(int c, char* argv[]) {
 
 	// Nth Element.
 	start = std::chrono::high_resolution_clock::now();
-	Image nth_element_sort_threshold = nth_element_sort(image, width, height, Ratio);
+	Pixel nth_element_sort_threshold = nth_element_sort(image, width, height, Ratio);
 	std::memcpy(image, copy, width * height);
 	end = std::chrono::high_resolution_clock::now();
 	duration = end - start;
@@ -233,19 +264,26 @@ int main(int c, char* argv[]) {
 	
 	// Normal Estimate.
 	start = std::chrono::high_resolution_clock::now();
-	Image estimate_threshold = normal_estimate(image, width, height, Ratio);
+	Pixel estimate_threshold = normal_estimate(image, width, height, Ratio);
 	end = std::chrono::high_resolution_clock::now();
 	duration = end - start;
 	display("Normal Estimate", estimate_threshold, duration.count());
 	
 	// Weighted Estimate.
 	start = std::chrono::high_resolution_clock::now();
-	Image weighted_threshold = weighted_estimate(image, width, height, Ratio);
+	Pixel weighted_threshold = weighted_estimate(image, width, height, Ratio);
 	end = std::chrono::high_resolution_clock::now();
 	duration = end - start;
 	display("Weighted Estimate", weighted_threshold, duration.count());
 	
-	// Export Image. Do not change pixels that are on the threshold.
+	// Uniform Sample.
+	start = std::chrono::high_resolution_clock::now();
+	Pixel uniform_sample_threshold = uniform_sample(image, width, height, Ratio);
+	end = std::chrono::high_resolution_clock::now();
+	duration = end - start;
+	display("Uniform Sample", uniform_sample_threshold, duration.count());
+	
+	// Export Pixel. Do not change pixels that are on the threshold.
 	for (size_t pixel = 0; pixel < width * height; pixel++) {
 		if (image[pixel] > nth_element_sort_threshold) {
 			image[pixel] = (1 << BIT_DEPTH) - 1;
@@ -253,6 +291,6 @@ int main(int c, char* argv[]) {
 			image[pixel] = 0;
 		}
 	}
-	stbi_write_png(binary_name, width, height, 1, image, width * sizeof(Image));
+	stbi_write_png(binary_name, width, height, 1, image, width * sizeof(Pixel));
 	return 0;
 }
