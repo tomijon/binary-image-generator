@@ -42,7 +42,7 @@ typedef stbi_uint16 Pixel;
 void display(const std::string& name, Pixel threshold, float duration) {
 	std::cout << name << std::endl;
 	std::cout << Padding << "Threshold: " << (int)threshold << std::endl;
-	std::cout << Padding << "Execution Time: " << std::fixed << std::setprecision(2) << duration << 's' << std::endl;
+	std::cout << Padding << "Execution Time: " << std::fixed << std::setprecision(3) << duration << 's' << std::endl;
 }
 
 
